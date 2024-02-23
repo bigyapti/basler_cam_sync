@@ -22,7 +22,6 @@ def trigger_and_grab(cam, start_barrier, end_barrier, frame_success, output_dir)
     try:
         while True:
             start_barrier.wait()  # Wait for all threads to reach the barrier before starting grabbing
-              
             cam.ExecuteSoftwareTrigger()
             try:
                 with cam.RetrieveResult(1000) as res:
@@ -34,13 +33,20 @@ def trigger_and_grab(cam, start_barrier, end_barrier, frame_success, output_dir)
 
                         # Convert grabbed frame to numpy array
                         frame = np.array(res.Array)
-        
-                        # Resize the frame to a fixed size
-                        frame = cv2.resize(frame, (640, 480))
-                        cv2.imshow(f"Camera {cam.GetCameraContext()}", frame)
-                        save_frame(frame, cam_id, img_nr, output_dir)
+                        
+                        # Record that this frame was successfully grabbed for this camera
                         frame_success[cam.GetCameraContext()] = True
+                        
+                        # Check if this frame was successfully grabbed for all cameras
+                        if all(frame_success.values()):
+                            # Resize the frame to a fixed size
+                            frame = cv2.resize(frame, (640, 480))
+                            cv2.imshow(f"Camera {cam.GetCameraContext()}", frame)
+                            save_frame(frame, cam_id, img_nr, output_dir)
+                        else:
+                            print("Skipping frame: Not grabbed for all cameras")
                     else:
+                        # Record that this frame failed to be grabbed for this camera
                         frame_success[cam.GetCameraContext()] = False
                         
             except RuntimeError as e:
@@ -69,7 +75,7 @@ def trigger_and_grab(cam, start_barrier, end_barrier, frame_success, output_dir)
 
 start_barrier = threading.Barrier(NUM_CAMERAS)
 end_barrier = threading.Barrier(NUM_CAMERAS)
-frame_success = {cam.GetCameraContext(): True for cam in cam_array}
+frame_success = {cam.GetCameraContext(): False for cam in cam_array}  # Initialize frame success status for each camera
 output_dir = create_output_dir()
 threads = []
 
