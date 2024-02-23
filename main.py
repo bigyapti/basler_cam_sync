@@ -7,7 +7,7 @@ import numpy as np
 import datetime
 import traceback
 
-NUM_CAMERAS = 4
+NUM_CAMERAS = 5
 
 # Start grabbing
 cam_array = setup_cameras(NUM_CAMERAS)
